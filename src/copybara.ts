@@ -87,7 +87,7 @@ export class CopyBara {
     if (!config.committer) throw 'You need to set a value for "committer".';
     if (!config.image.name) throw 'You need to set a value for "copybara_image".';
     if (!config.image.tag) throw 'You need to set a value for "copybara_image_tag".';
-    if (config.push.origin_include.length) throw 'You need to set a value for "origin_include".';
+    if (!config.push.origin_include.length) throw 'You need to set a value for "origin_include".';
     if (!config.sot.repo || !config.destination.repo)
       throw 'You need to set values for "sot_repo" & "destination_repo" or set a value for "custom_config".';
   }
