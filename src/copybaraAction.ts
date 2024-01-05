@@ -152,7 +152,7 @@ export class CopybaraAction {
     }
   }
 
-  async run() {
+  async run(): Promise<number> {
     await this.saveConfigFiles();
 
     core.debug(`Download Copybara from ${this.config.image.name}:${this.config.image.tag}`);

@@ -31,20 +31,20 @@ export class CopyBara {
 
   public static getConfig(workflow: string, config: CopybaraConfig): string {
     this.validateConfig(config, workflow);
-    return copyBaraSky(
-      `git@github.com:${config.sot.repo}.git`,
-      config.sot.branch,
-      `git@github.com:${config.destination.repo}.git`,
-      config.destination.branch,
-      config.committer,
-      "file:///usr/src/app",
-      this.generateInExcludes(config.push.include),
-      this.generateInExcludes(config.push.exclude),
-      this.generateTransformations(config.push.move, config.push.replace, "push"),
-      this.generateInExcludes(config.pr.include),
-      this.generateInExcludes(config.pr.exclude),
-      this.generateTransformations(config.pr.move, config.pr.replace, "pr")
-    );
+    return copyBaraSky({
+      sotRepo: `https://github.com/${config.sot.repo}.git`,
+      sotBranch: config.sot.branch,
+      destinationRepo: `https://github.com/${config.destination.repo}.git`,
+      destinationBranch: config.destination.branch,
+      committer: config.committer,
+      localSot: "file:///usr/src/app",
+      pushInclude: this.generateInExcludes(config.push.include),
+      pushExclude: this.generateInExcludes(config.push.exclude),
+      pushTransformations: this.generateTransformations(config.push.move, config.push.replace, "push"),
+      prInclude: this.generateInExcludes(config.pr.include),
+      prExclude: this.generateInExcludes(config.pr.exclude),
+      prTransformations: this.generateTransformations(config.pr.move, config.pr.replace, "pr"),
+    });
   }
 
   private async exec(dockerParams: string[] = [], copybaraOptions: string[] = []): Promise<number> {
