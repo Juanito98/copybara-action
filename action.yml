@@ -5,7 +5,7 @@ author: "Romain Barissat"
 inputs:
   ssh_key:
     description: "SSH public key."
-    required: true
+    required: false
 
   access_token:
     description: "Personal access token with `repo` permissions. Always required on *destination*. Required on *SoT* only if the variable `sot_branch` below is left empty and to decide between **push** and **init** workflows."
@@ -115,7 +115,7 @@ inputs:
     default: "yes"
 
 runs:
-  using: "node12"
+  using: "node20"
   main: "dist/index.js"
 
 branding:

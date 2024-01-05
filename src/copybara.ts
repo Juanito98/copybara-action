@@ -15,13 +15,13 @@ export class CopyBara {
       case "init":
         return this.exec(
           ["-e", "COPYBARA_WORKFLOW=push"],
-          ["--force", "--init-history", "--ignore-noop", ...copybaraOptions]
+          ["--force", "--init-history", "--ignore-noop", ...copybaraOptions],
         );
 
       case "pr":
         return this.exec(
           ["-e", "COPYBARA_WORKFLOW=pr", "-e", `COPYBARA_SOURCEREF=${ref}`],
-          ["--ignore-noop", ...copybaraOptions]
+          ["--ignore-noop", ...copybaraOptions],
         );
 
       default:
@@ -31,20 +31,20 @@ export class CopyBara {
 
   public static getConfig(workflow: string, config: CopybaraConfig): string {
     this.validateConfig(config, workflow);
-    return copyBaraSky(
-      `git@github.com:${config.sot.repo}.git`,
-      config.sot.branch,
-      `git@github.com:${config.destination.repo}.git`,
-      config.destination.branch,
-      config.committer,
-      "file:///usr/src/app",
-      this.generateInExcludes(config.push.include),
-      this.generateInExcludes(config.push.exclude),
-      this.generateTransformations(config.push.move, config.push.replace, "push"),
-      this.generateInExcludes(config.pr.include),
-      this.generateInExcludes(config.pr.exclude),
-      this.generateTransformations(config.pr.move, config.pr.replace, "pr")
-    );
+    return copyBaraSky({
+      sotRepo: `https://github.com/${config.sot.repo}.git`,
+      sotBranch: config.sot.branch,
+      destinationRepo: `https://github.com/${config.destination.repo}.git`,
+      destinationBranch: config.destination.branch,
+      committer: config.committer,
+      localSot: "file:///usr/src/app",
+      pushInclude: this.generateInExcludes(config.push.include),
+      pushExclude: this.generateInExcludes(config.push.exclude),
+      pushTransformations: this.generateTransformations(config.push.move, config.push.replace, "push"),
+      prInclude: this.generateInExcludes(config.pr.include),
+      prExclude: this.generateInExcludes(config.pr.exclude),
+      prTransformations: this.generateTransformations(config.pr.move, config.pr.replace, "pr"),
+    });
   }
 
   private async exec(dockerParams: string[] = [], copybaraOptions: string[] = []): Promise<number> {
@@ -57,15 +57,9 @@ export class CopyBara {
         `-v`,
         `${process.cwd()}:/usr/src/app`,
         `-v`,
-        `${hostConfig.sshKeyPath}:/root/.ssh/id_rsa`,
-        `-v`,
-        `${hostConfig.knownHostsPath}:/root/.ssh/known_hosts`,
-        `-v`,
         `${hostConfig.cbConfigPath}:/root/copy.bara.sky`,
         `-v`,
         `${hostConfig.gitConfigPath}:/root/.gitconfig`,
-        `-v`,
-        `${hostConfig.gitCredentialsPath}:/root/.git-credentials`,
         `-e`,
         `COPYBARA_CONFIG=/root/copy.bara.sky`,
         ...dockerParams,
@@ -76,7 +70,7 @@ export class CopyBara {
       {
         ignoreReturnCode: true,
         env: { COPYBARA_OPTIONS: copybaraOptions.join(" ") },
-      }
+      },
     );
 
     const exitCode = exitCodes[execExitCode];
