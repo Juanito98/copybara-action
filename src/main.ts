@@ -4,7 +4,6 @@ import { exit } from "./exit";
 
 const action = new CopybaraAction({
   // Credentials
-  sshKey: core.getInput("ssh_key"),
   accessToken: core.getInput("access_token"),
 
   // Common config
@@ -20,18 +19,12 @@ const action = new CopybaraAction({
 
   // Push config
   push: {
-    include: core.getInput("push_include").split(" "),
-    exclude: core.getInput("push_exclude").split(" "),
-    move: core.getInput("push_move").split(/\r?\n/),
-    replace: core.getInput("push_replace").split(/\r?\n/),
-  },
-
-  // PR config
-  pr: {
-    include: core.getInput("pr_include").split(" "),
-    exclude: core.getInput("pr_exclude").split(" "),
-    move: core.getInput("pr_move").split(/\r?\n/),
-    replace: core.getInput("pr_replace").split(/\r?\n/),
+    origin_include: core.getInput("origin_include").split(" "),
+    origin_exclude: core.getInput("origin_exclude").split(" "),
+    destination_include: core.getInput("destination_include").split(" "),
+    destination_exclude: core.getInput("destination_exclude").split(" "),
+    move: core.getInput("move").split(/\r?\n/),
+    replace: core.getInput("replace").split(/\r?\n/),
   },
 
   // Advanced config

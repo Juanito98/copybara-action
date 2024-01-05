@@ -4,85 +4,54 @@ export const copyBaraSky = ({
   destinationRepo,
   destinationBranch,
   committer,
-  localSot,
-  pushInclude,
-  pushExclude,
-  pushTransformations,
-  prInclude,
-  prExclude,
-  prTransformations,
+  originFilesInclude,
+  originFilesExclude,
+  destinationFilesInclude,
+  destinationFilesExclude,
+  transformations,
 }: {
   sotRepo: string;
   sotBranch: string;
   destinationRepo: string;
   destinationBranch: string;
   committer: string;
-  localSot: string;
-  pushInclude: string;
-  pushExclude: string;
-  pushTransformations: string;
-  prInclude: string;
-  prExclude: string;
-  prTransformations: string;
+  originFilesInclude: string;
+  originFilesExclude: string;
+  destinationFilesInclude: string;
+  destinationFilesExclude: string;
+  transformations: string;
 }): string => `
 # Variables
-SOT_REPO = "${sotRepo}"
-SOT_BRANCH = "${sotBranch}"
+SOT_REPO = ${sotRepo}
+SOT_BRANCH = ${sotBranch}
 DESTINATION_REPO = "${destinationRepo}"
 DESTINATION_BRANCH = "${destinationBranch}"
 COMMITTER = "${committer}"
-LOCAL_SOT = "${localSot}"
 
-PUSH_INCLUDE = [${pushInclude}]
-PUSH_EXCLUDE = [${pushExclude}]
-PUSH_TRANSFORMATIONS = [${pushTransformations}
-]
+ORIGIN_FILES_INCLUDE = [${originFilesInclude}]
+ORIGIN_FILES_EXCLUDE = [${originFilesExclude}]
+DESTINATION_FILES_INCLUDE = [${destinationFilesInclude}]
+DESTINATION_FILES_EXCLUDE = [${destinationFilesExclude}]
 
-PR_INCLUDE = [${prInclude}]
-PR_EXCLUDE = [${prExclude}]
-PR_TRANSFORMATIONS = [${prTransformations}
-]
+TRANSFORMATIONS = [${transformations}]
 
-# Push workflow
+# Push SoT to PR to Destination workflow
 core.workflow(
     name = "push",
     origin = git.origin(
-        url = LOCAL_SOT if LOCAL_SOT else SOT_REPO,
+        url = SOT_REPO,
         ref = SOT_BRANCH,
     ),
-    destination = git.github_destination(
-        url = DESTINATION_REPO,
-        push = DESTINATION_BRANCH,
-    ),
-    origin_files = glob(PUSH_INCLUDE, exclude = PUSH_EXCLUDE),
-    authoring = authoring.pass_thru(default = COMMITTER),
-    mode = "ITERATIVE",
-    transformations = [
-        metadata.restore_author("ORIGINAL_AUTHOR", search_all_changes = True),
-        metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
-    ] + PUSH_TRANSFORMATIONS if PUSH_TRANSFORMATIONS else core.reverse(PR_TRANSFORMATIONS),
-)
-
-# Pull Request workflow
-core.workflow(
-    name = "pr",
-    origin = git.github_pr_origin(
-        url = DESTINATION_REPO,
-        branch = DESTINATION_BRANCH,
-    ),
     destination = git.github_pr_destination(
-        url = SOT_REPO,
-        destination_ref = SOT_BRANCH,
+        url = DESTINATION_REPO,
+        destination_ref = DESTINATION_BRANCH,
         integrates = [],
     ),
-    destination_files = glob(PUSH_INCLUDE, exclude = PUSH_EXCLUDE),
-    origin_files = glob(PR_INCLUDE if PR_INCLUDE else ["**"], exclude = PR_EXCLUDE),
     authoring = authoring.pass_thru(default = COMMITTER),
-    mode = "CHANGE_REQUEST",
-    set_rev_id = False,
+    origin_files = glob(ORIGIN_FILES_INCLUDE, exclude = ORIGIN_FILES_EXCLUDE),
+    destination_files = glob(DESTINATION_FILES_INCLUDE, exclude = DESTINATION_FILES_EXCLUDE),
     transformations = [
         metadata.save_author("ORIGINAL_AUTHOR"),
-        metadata.expose_label("GITHUB_PR_NUMBER", new_name = "Closes", separator = DESTINATION_REPO.replace("git@github.com:", " ").replace(".git", "#")),
-    ] + PR_TRANSFORMATIONS,
-)
+        metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
+    ] + TRANSFORMATIONS
 `;
