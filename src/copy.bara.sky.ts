@@ -22,8 +22,8 @@ export const copyBaraSky = ({
   transformations: string;
 }): string => `
 # Variables
-SOT_REPO = ${sotRepo}
-SOT_BRANCH = ${sotBranch}
+SOT_REPO = "${sotRepo}"
+SOT_BRANCH = "${sotBranch}"
 DESTINATION_REPO = "${destinationRepo}"
 DESTINATION_BRANCH = "${destinationBranch}"
 COMMITTER = "${committer}"
@@ -33,7 +33,8 @@ ORIGIN_FILES_EXCLUDE = [${originFilesExclude}]
 DESTINATION_FILES_INCLUDE = [${destinationFilesInclude}]
 DESTINATION_FILES_EXCLUDE = [${destinationFilesExclude}]
 
-TRANSFORMATIONS = [${transformations}]
+TRANSFORMATIONS = [${transformations}
+]
 
 # Push SoT to PR to Destination workflow
 core.workflow(
@@ -53,5 +54,6 @@ core.workflow(
     transformations = [
         metadata.save_author("ORIGINAL_AUTHOR"),
         metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
-    ] + TRANSFORMATIONS
+    ] + TRANSFORMATIONS,
+)
 `;
