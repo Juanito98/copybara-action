@@ -37,11 +37,12 @@ export class CopyBara {
       destinationRepo: `https://github.com/${config.destination.repo}.git`,
       destinationBranch: config.destination.branch,
       committer: config.committer,
-      originFilesInclude: this.generateInExcludes(config.push.origin_include),
-      originFilesExclude: this.generateInExcludes(config.push.origin_exclude),
-      destinationFilesInclude: this.generateInExcludes(config.push.destination_include),
-      destinationFilesExclude: this.generateInExcludes(config.push.destination_exclude),
+      originFilesInclude: this.generateCommaSeparated(config.push.origin_include),
+      originFilesExclude: this.generateCommaSeparated(config.push.origin_exclude),
+      destinationFilesInclude: this.generateCommaSeparated(config.push.destination_include),
+      destinationFilesExclude: this.generateCommaSeparated(config.push.destination_exclude),
       transformations: this.generateTransformations(config.push.move, config.push.replace, config.workflow),
+      assignees: this.generateCommaSeparated(config.push.assignees),
     });
   }
 
@@ -92,12 +93,12 @@ export class CopyBara {
       throw 'You need to set values for "sot_repo" & "destination_repo" or set a value for "custom_config".';
   }
 
-  private static generateInExcludes(inExcludesArray: string[]) {
-    const inExcludeGlobs = inExcludesArray.filter((v) => v);
-    let inExcludeString = "";
+  private static generateCommaSeparated(inExcludesArray: string[]) {
+    const clean = inExcludesArray.filter((v) => v);
+    let ans = "";
 
-    if (inExcludeGlobs.length) inExcludeString = `"${inExcludeGlobs.join('","')}"`;
-    return inExcludeString;
+    if (clean.length) ans = `"${clean.join('","')}"`;
+    return ans;
   }
 
   private static generateTransformations(moves: string[], replacements: string[], workflow: string) {
@@ -135,7 +136,7 @@ export type CopybaraConfig = {
   committer: string;
 
   // Push config
-  push: WorkflowConfig;
+  push: PushWorkflowConfig;
 
   // Advanced config
   customConfig: string;
@@ -164,4 +165,8 @@ export type WorkflowConfig = {
   destination_exclude: string[];
   move: string[];
   replace: string[];
+};
+
+export type PushWorkflowConfig = WorkflowConfig & {
+  assignees: string[];
 };

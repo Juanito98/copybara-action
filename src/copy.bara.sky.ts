@@ -9,6 +9,7 @@ export const copyBaraSky = ({
   destinationFilesInclude,
   destinationFilesExclude,
   transformations,
+  assignees,
 }: {
   sotRepo: string;
   sotBranch: string;
@@ -20,6 +21,7 @@ export const copyBaraSky = ({
   destinationFilesInclude: string;
   destinationFilesExclude: string;
   transformations: string;
+  assignees: string;
 }): string => `
 # Variables
 SOT_REPO = "${sotRepo}"
@@ -36,6 +38,9 @@ DESTINATION_FILES_EXCLUDE = [${destinationFilesExclude}]
 TRANSFORMATIONS = [${transformations}
 ]
 
+# Specific to push flow
+ASSIGNEES = ["${assignees}"]
+
 # Push SoT to PR to Destination workflow
 core.workflow(
     name = "push",
@@ -46,6 +51,7 @@ core.workflow(
     destination = git.github_pr_destination(
         url = DESTINATION_REPO,
         destination_ref = DESTINATION_BRANCH,
+        assignees = ASSIGNEES,
         integrates = [],
     ),
     authoring = authoring.pass_thru(default = COMMITTER),

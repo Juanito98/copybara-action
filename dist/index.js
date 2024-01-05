@@ -42892,7 +42892,7 @@ function wrappy (fn, cb) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.copyBaraSky = void 0;
-const copyBaraSky = ({ sotRepo, sotBranch, destinationRepo, destinationBranch, committer, originFilesInclude, originFilesExclude, destinationFilesInclude, destinationFilesExclude, transformations, }) => `
+const copyBaraSky = ({ sotRepo, sotBranch, destinationRepo, destinationBranch, committer, originFilesInclude, originFilesExclude, destinationFilesInclude, destinationFilesExclude, transformations, assignees, }) => `
 # Variables
 SOT_REPO = "${sotRepo}"
 SOT_BRANCH = "${sotBranch}"
@@ -42908,6 +42908,9 @@ DESTINATION_FILES_EXCLUDE = [${destinationFilesExclude}]
 TRANSFORMATIONS = [${transformations}
 ]
 
+# Specific to push flow
+ASSIGNEES = ["${assignees}"]
+
 # Push SoT to PR to Destination workflow
 core.workflow(
     name = "push",
@@ -42918,6 +42921,7 @@ core.workflow(
     destination = git.github_pr_destination(
         url = DESTINATION_REPO,
         destination_ref = DESTINATION_BRANCH,
+        assignees = ASSIGNEES,
         integrates = [],
     ),
     authoring = authoring.pass_thru(default = COMMITTER),
@@ -42983,11 +42987,12 @@ class CopyBara {
             destinationRepo: `https://github.com/${config.destination.repo}.git`,
             destinationBranch: config.destination.branch,
             committer: config.committer,
-            originFilesInclude: this.generateInExcludes(config.push.origin_include),
-            originFilesExclude: this.generateInExcludes(config.push.origin_exclude),
-            destinationFilesInclude: this.generateInExcludes(config.push.destination_include),
-            destinationFilesExclude: this.generateInExcludes(config.push.destination_exclude),
+            originFilesInclude: this.generateCommaSeparated(config.push.origin_include),
+            originFilesExclude: this.generateCommaSeparated(config.push.origin_exclude),
+            destinationFilesInclude: this.generateCommaSeparated(config.push.destination_include),
+            destinationFilesExclude: this.generateCommaSeparated(config.push.destination_exclude),
             transformations: this.generateTransformations(config.push.move, config.push.replace, config.workflow),
+            assignees: this.generateCommaSeparated(config.push.assignees),
         });
     }
     exec(dockerParams = [], copybaraOptions = []) {
@@ -43037,12 +43042,12 @@ class CopyBara {
         if (!config.sot.repo || !config.destination.repo)
             throw 'You need to set values for "sot_repo" & "destination_repo" or set a value for "custom_config".';
     }
-    static generateInExcludes(inExcludesArray) {
-        const inExcludeGlobs = inExcludesArray.filter((v) => v);
-        let inExcludeString = "";
-        if (inExcludeGlobs.length)
-            inExcludeString = `"${inExcludeGlobs.join('","')}"`;
-        return inExcludeString;
+    static generateCommaSeparated(inExcludesArray) {
+        const clean = inExcludesArray.filter((v) => v);
+        let ans = "";
+        if (clean.length)
+            ans = `"${clean.join('","')}"`;
+        return ans;
     }
     static generateTransformations(moves, replacements, workflow) {
         const move = this.transformer(moves, "move");
@@ -43589,6 +43594,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
+const github_1 = __nccwpck_require__(5438);
 const copybaraAction_1 = __nccwpck_require__(4675);
 const exit_1 = __nccwpck_require__(5633);
 const action = new copybaraAction_1.CopybaraAction({
@@ -43612,6 +43618,7 @@ const action = new copybaraAction_1.CopybaraAction({
         destination_exclude: core.getInput("destination_exclude").split(" "),
         move: core.getInput("move").split(/\r?\n/),
         replace: core.getInput("replace").split(/\r?\n/),
+        assignees: [github_1.context.actor],
     },
     // Advanced config
     customConfig: core.getInput("custom_config"),

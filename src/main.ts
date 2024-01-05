@@ -1,4 +1,5 @@
 import * as core from "@actions/core";
+import { context } from "@actions/github";
 import { CopybaraAction } from "./copybaraAction";
 import { exit } from "./exit";
 
@@ -25,6 +26,7 @@ const action = new CopybaraAction({
     destination_exclude: core.getInput("destination_exclude").split(" "),
     move: core.getInput("move").split(/\r?\n/),
     replace: core.getInput("replace").split(/\r?\n/),
+    assignees: [context.actor],
   },
 
   // Advanced config
