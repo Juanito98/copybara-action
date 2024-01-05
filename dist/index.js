@@ -43168,7 +43168,12 @@ class CopybaraAction {
             if (!this.config.sot.branch) {
                 if (!this.config.sot.branch && !this.config.accessToken)
                     throw 'You need to set a value for "sot_branch" or "access_token".';
-                this.config.sot.branch = yield this.getGitHubClient().getDefaultBranch(this.config.sot.repo);
+                if (this.getCurrentRepo() === this.config.sot.repo) {
+                    this.config.sot.branch = this.getCurrentBranch();
+                }
+                else {
+                    this.config.sot.branch = yield this.getGitHubClient().getDefaultBranch(this.config.sot.repo);
+                }
             }
             core.debug(`SoT branch is ${this.config.sot.branch}`);
             return this.config.sot.branch;
@@ -43176,8 +43181,14 @@ class CopybaraAction {
     }
     getDestinationBranch() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.config.destination.branch)
-                this.config.destination.branch = yield this.getSotBranch();
+            if (!this.config.destination.branch) {
+                if (!this.config.destination.repo) {
+                    this.config.destination.branch = yield this.getSotBranch();
+                }
+                else {
+                    this.config.destination.branch = yield this.getGitHubClient().getDefaultBranch(this.config.destination.repo);
+                }
+            }
             core.debug(`Destination branch is ${this.config.destination.branch}`);
             return this.config.destination.branch;
         });
