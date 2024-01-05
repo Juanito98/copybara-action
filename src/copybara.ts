@@ -37,13 +37,11 @@ export class CopyBara {
       destinationRepo: `https://github.com/${config.destination.repo}.git`,
       destinationBranch: config.destination.branch,
       committer: config.committer,
-      localSot: "file:///usr/src/app",
-      pushInclude: this.generateInExcludes(config.push.include),
-      pushExclude: this.generateInExcludes(config.push.exclude),
-      pushTransformations: this.generateTransformations(config.push.move, config.push.replace, "push"),
-      prInclude: this.generateInExcludes(config.pr.include),
-      prExclude: this.generateInExcludes(config.pr.exclude),
-      prTransformations: this.generateTransformations(config.pr.move, config.pr.replace, "pr"),
+      originFilesInclude: this.generateInExcludes(config.push.origin_include),
+      originFilesExclude: this.generateInExcludes(config.push.origin_exclude),
+      destinationFilesInclude: this.generateInExcludes(config.push.destination_include),
+      destinationFilesExclude: this.generateInExcludes(config.push.destination_exclude),
+      transformations: this.generateTransformations(config.push.move, config.push.replace, config.workflow),
     });
   }
 
@@ -84,12 +82,12 @@ export class CopyBara {
     else throw 52;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static validateConfig(config: CopybaraConfig, workflow: string) {
     if (!config.committer) throw 'You need to set a value for "committer".';
     if (!config.image.name) throw 'You need to set a value for "copybara_image".';
     if (!config.image.tag) throw 'You need to set a value for "copybara_image_tag".';
-    if (workflow == "push" && !config.push.include.length) throw 'You need to set a value for "push_include".';
-    if (workflow == "pr" && !config.pr.include.length) throw 'You need to set a value for "pr_include".';
+    if (config.push.origin_include.length) throw 'You need to set a value for "origin_include".';
     if (!config.sot.repo || !config.destination.repo)
       throw 'You need to set values for "sot_repo" & "destination_repo" or set a value for "custom_config".';
   }
@@ -102,11 +100,11 @@ export class CopyBara {
     return inExcludeString;
   }
 
-  private static generateTransformations(moves: string[], replacements: string[], type: "push" | "pr") {
+  private static generateTransformations(moves: string[], replacements: string[], workflow: string) {
     const move = this.transformer(moves, "move");
     const replace = this.transformer(replacements, "replace");
 
-    return type == "push"
+    return workflow == "push"
       ? // Move first then replace for push
         move.concat(replace)
       : // Replace first then move for PR
@@ -139,9 +137,6 @@ export type CopybaraConfig = {
   // Push config
   push: WorkflowConfig;
 
-  // PR config
-  pr: WorkflowConfig;
-
   // Advanced config
   customConfig: string;
   workflow: string;
@@ -163,8 +158,10 @@ export type DockerConfig = {
 };
 
 export type WorkflowConfig = {
-  include: string[];
-  exclude: string[];
+  origin_include: string[];
+  origin_exclude: string[];
+  destination_include: string[];
+  destination_exclude: string[];
   move: string[];
   replace: string[];
 };

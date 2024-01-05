@@ -42,6 +42,18 @@ export class CopybaraAction {
     return this.gh;
   }
 
+  getSoTRepo() {
+    if (!this.config.sot.repo) {
+      if (!this.config.sot.repo && !this.config.accessToken)
+        throw 'You need to set a value for "sot_repo" or "access_token".';
+
+      this.config.sot.repo = this.getCurrentRepo();
+    }
+
+    core.debug(`SoT repo is ${this.config.sot.repo}`);
+    return this.config.sot.repo;
+  }
+
   async getSotBranch() {
     if (!this.config.sot.branch) {
       if (!this.config.sot.branch && !this.config.accessToken)
@@ -124,6 +136,14 @@ export class CopybaraAction {
     ));
   }
 
+  async safeCopybaraConfig() {
+    // This will set the default values for the Copybara config if they are not set
+    this.getSoTRepo();
+    await this.getSotBranch();
+    await this.getDestinationBranch();
+    await this.getWorkflow();
+  }
+
   async getCopybaraConfig() {
     if (!this.cbConfig) {
       if (this.config.customConfig) {
@@ -131,7 +151,10 @@ export class CopybaraAction {
         if (!pathExists(configFile)) exit(51, `Cannot find the config file ${configFile}`);
         core.debug(`Load custom Copybara config from ${configFile}`);
         this.cbConfig = readFileSync(configFile, "utf8");
-      } else this.cbConfig = CopyBara.getConfig(await this.getWorkflow(), this.config);
+      } else {
+        await this.safeCopybaraConfig();
+        this.cbConfig = CopyBara.getConfig(await this.getWorkflow(), this.config);
+      }
     }
 
     return this.cbConfig;
@@ -139,7 +162,6 @@ export class CopybaraAction {
 
   async saveConfigFiles() {
     core.debug("Save config files");
-    await hostConfig.saveSshKey(this.config.sshKey);
     await hostConfig.saveGitConfig({ committer: this.config.committer, accessToken: this.config.accessToken });
     await hostConfig.saveKnownHosts(this.config.knownHosts);
     await hostConfig.saveCopybaraConfig(await this.getCopybaraConfig());
@@ -164,6 +186,5 @@ export class CopybaraAction {
 }
 
 interface CopybaraActionConfig extends CopybaraConfig {
-  sshKey: string;
   accessToken: string;
 }

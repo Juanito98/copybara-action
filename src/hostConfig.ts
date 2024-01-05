@@ -3,7 +3,6 @@ import { homedir } from "os";
 
 export class hostConfig {
   static gitConfigPath = homedir() + "/.gitconfig";
-  static sshKeyPath = homedir() + "/.ssh/id_rsa";
   static knownHostsPath = homedir() + "/.ssh/known_hosts";
   static cbConfigPath = homedir() + "/copy.bara.sky";
 
@@ -27,10 +26,6 @@ export class hostConfig {
 	      insteadOf = https://github.com
       `,
     );
-  }
-
-  static async saveSshKey(sshKey: string): Promise<void> {
-    return this.save(this.sshKeyPath, sshKey);
   }
 
   static async saveKnownHosts(knownHosts: string): Promise<void> {

@@ -42892,67 +42892,40 @@ function wrappy (fn, cb) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.copyBaraSky = void 0;
-const copyBaraSky = ({ sotRepo, sotBranch, destinationRepo, destinationBranch, committer, localSot, pushInclude, pushExclude, pushTransformations, prInclude, prExclude, prTransformations, }) => `
+const copyBaraSky = ({ sotRepo, sotBranch, destinationRepo, destinationBranch, committer, originFilesInclude, originFilesExclude, destinationFilesInclude, destinationFilesExclude, transformations, }) => `
 # Variables
-SOT_REPO = "${sotRepo}"
-SOT_BRANCH = "${sotBranch}"
+SOT_REPO = ${sotRepo}
+SOT_BRANCH = ${sotBranch}
 DESTINATION_REPO = "${destinationRepo}"
 DESTINATION_BRANCH = "${destinationBranch}"
 COMMITTER = "${committer}"
-LOCAL_SOT = "${localSot}"
 
-PUSH_INCLUDE = [${pushInclude}]
-PUSH_EXCLUDE = [${pushExclude}]
-PUSH_TRANSFORMATIONS = [${pushTransformations}
-]
+ORIGIN_FILES_INCLUDE = [${originFilesInclude}]
+ORIGIN_FILES_EXCLUDE = [${originFilesExclude}]
+DESTINATION_FILES_INCLUDE = [${destinationFilesInclude}]
+DESTINATION_FILES_EXCLUDE = [${destinationFilesExclude}]
 
-PR_INCLUDE = [${prInclude}]
-PR_EXCLUDE = [${prExclude}]
-PR_TRANSFORMATIONS = [${prTransformations}
-]
+TRANSFORMATIONS = [${transformations}]
 
-# Push workflow
+# Push SoT to PR to Destination workflow
 core.workflow(
     name = "push",
     origin = git.origin(
-        url = LOCAL_SOT if LOCAL_SOT else SOT_REPO,
+        url = SOT_REPO,
         ref = SOT_BRANCH,
     ),
-    destination = git.github_destination(
-        url = DESTINATION_REPO,
-        push = DESTINATION_BRANCH,
-    ),
-    origin_files = glob(PUSH_INCLUDE, exclude = PUSH_EXCLUDE),
-    authoring = authoring.pass_thru(default = COMMITTER),
-    mode = "ITERATIVE",
-    transformations = [
-        metadata.restore_author("ORIGINAL_AUTHOR", search_all_changes = True),
-        metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
-    ] + PUSH_TRANSFORMATIONS if PUSH_TRANSFORMATIONS else core.reverse(PR_TRANSFORMATIONS),
-)
-
-# Pull Request workflow
-core.workflow(
-    name = "pr",
-    origin = git.github_pr_origin(
-        url = DESTINATION_REPO,
-        branch = DESTINATION_BRANCH,
-    ),
     destination = git.github_pr_destination(
-        url = SOT_REPO,
-        destination_ref = SOT_BRANCH,
+        url = DESTINATION_REPO,
+        destination_ref = DESTINATION_BRANCH,
         integrates = [],
     ),
-    destination_files = glob(PUSH_INCLUDE, exclude = PUSH_EXCLUDE),
-    origin_files = glob(PR_INCLUDE if PR_INCLUDE else ["**"], exclude = PR_EXCLUDE),
     authoring = authoring.pass_thru(default = COMMITTER),
-    mode = "CHANGE_REQUEST",
-    set_rev_id = False,
+    origin_files = glob(ORIGIN_FILES_INCLUDE, exclude = ORIGIN_FILES_EXCLUDE),
+    destination_files = glob(DESTINATION_FILES_INCLUDE, exclude = DESTINATION_FILES_EXCLUDE),
     transformations = [
         metadata.save_author("ORIGINAL_AUTHOR"),
-        metadata.expose_label("GITHUB_PR_NUMBER", new_name = "Closes", separator = DESTINATION_REPO.replace("git@github.com:", " ").replace(".git", "#")),
-    ] + PR_TRANSFORMATIONS,
-)
+        metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
+    ] + TRANSFORMATIONS
 `;
 exports.copyBaraSky = copyBaraSky;
 
@@ -43008,13 +42981,11 @@ class CopyBara {
             destinationRepo: `https://github.com/${config.destination.repo}.git`,
             destinationBranch: config.destination.branch,
             committer: config.committer,
-            localSot: "file:///usr/src/app",
-            pushInclude: this.generateInExcludes(config.push.include),
-            pushExclude: this.generateInExcludes(config.push.exclude),
-            pushTransformations: this.generateTransformations(config.push.move, config.push.replace, "push"),
-            prInclude: this.generateInExcludes(config.pr.include),
-            prExclude: this.generateInExcludes(config.pr.exclude),
-            prTransformations: this.generateTransformations(config.pr.move, config.pr.replace, "pr"),
+            originFilesInclude: this.generateInExcludes(config.push.origin_include),
+            originFilesExclude: this.generateInExcludes(config.push.origin_exclude),
+            destinationFilesInclude: this.generateInExcludes(config.push.destination_include),
+            destinationFilesExclude: this.generateInExcludes(config.push.destination_exclude),
+            transformations: this.generateTransformations(config.push.move, config.push.replace, config.workflow),
         });
     }
     exec(dockerParams = [], copybaraOptions = []) {
@@ -43051,6 +43022,7 @@ class CopyBara {
                 throw 52;
         });
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     static validateConfig(config, workflow) {
         if (!config.committer)
             throw 'You need to set a value for "committer".';
@@ -43058,10 +43030,8 @@ class CopyBara {
             throw 'You need to set a value for "copybara_image".';
         if (!config.image.tag)
             throw 'You need to set a value for "copybara_image_tag".';
-        if (workflow == "push" && !config.push.include.length)
-            throw 'You need to set a value for "push_include".';
-        if (workflow == "pr" && !config.pr.include.length)
-            throw 'You need to set a value for "pr_include".';
+        if (config.push.origin_include.length)
+            throw 'You need to set a value for "origin_include".';
         if (!config.sot.repo || !config.destination.repo)
             throw 'You need to set values for "sot_repo" & "destination_repo" or set a value for "custom_config".';
     }
@@ -43072,10 +43042,10 @@ class CopyBara {
             inExcludeString = `"${inExcludeGlobs.join('","')}"`;
         return inExcludeString;
     }
-    static generateTransformations(moves, replacements, type) {
+    static generateTransformations(moves, replacements, workflow) {
         const move = this.transformer(moves, "move");
         const replace = this.transformer(replacements, "replace");
-        return type == "push"
+        return workflow == "push"
             ? // Move first then replace for push
                 move.concat(replace)
             : // Replace first then move for PR
@@ -43184,6 +43154,15 @@ class CopybaraAction {
         }
         return this.gh;
     }
+    getSoTRepo() {
+        if (!this.config.sot.repo) {
+            if (!this.config.sot.repo && !this.config.accessToken)
+                throw 'You need to set a value for "sot_repo" or "access_token".';
+            this.config.sot.repo = this.getCurrentRepo();
+        }
+        core.debug(`SoT repo is ${this.config.sot.repo}`);
+        return this.config.sot.repo;
+    }
     getSotBranch() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.config.sot.branch) {
@@ -43252,6 +43231,15 @@ class CopybaraAction {
             return !(yield this.getGitHubClient().branchExists(this.config.destination.repo, yield this.getDestinationBranch(), this.config.createRepo));
         });
     }
+    safeCopybaraConfig() {
+        return __awaiter(this, void 0, void 0, function* () {
+            // This will set the default values for the Copybara config if they are not set
+            this.getSoTRepo();
+            yield this.getSotBranch();
+            yield this.getDestinationBranch();
+            yield this.getWorkflow();
+        });
+    }
     getCopybaraConfig() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.cbConfig) {
@@ -43262,8 +43250,10 @@ class CopybaraAction {
                     core.debug(`Load custom Copybara config from ${configFile}`);
                     this.cbConfig = (0, fs_extra_1.readFileSync)(configFile, "utf8");
                 }
-                else
+                else {
+                    yield this.safeCopybaraConfig();
                     this.cbConfig = copybara_1.CopyBara.getConfig(yield this.getWorkflow(), this.config);
+                }
             }
             return this.cbConfig;
         });
@@ -43271,7 +43261,6 @@ class CopybaraAction {
     saveConfigFiles() {
         return __awaiter(this, void 0, void 0, function* () {
             core.debug("Save config files");
-            yield hostConfig_1.hostConfig.saveSshKey(this.config.sshKey);
             yield hostConfig_1.hostConfig.saveGitConfig({ committer: this.config.committer, accessToken: this.config.accessToken });
             yield hostConfig_1.hostConfig.saveKnownHosts(this.config.knownHosts);
             yield hostConfig_1.hostConfig.saveCopybaraConfig(yield this.getCopybaraConfig());
@@ -43530,11 +43519,6 @@ class hostConfig {
       `);
         });
     }
-    static saveSshKey(sshKey) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.save(this.sshKeyPath, sshKey);
-        });
-    }
     static saveKnownHosts(knownHosts) {
         return __awaiter(this, void 0, void 0, function* () {
             return this.save(this.knownHostsPath, `${this.githubKnownHost}\n${knownHosts}`);
@@ -43554,7 +43538,6 @@ class hostConfig {
 }
 exports.hostConfig = hostConfig;
 hostConfig.gitConfigPath = (0, os_1.homedir)() + "/.gitconfig";
-hostConfig.sshKeyPath = (0, os_1.homedir)() + "/.ssh/id_rsa";
 hostConfig.knownHostsPath = (0, os_1.homedir)() + "/.ssh/known_hosts";
 hostConfig.cbConfigPath = (0, os_1.homedir)() + "/copy.bara.sky";
 // https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
@@ -43597,7 +43580,6 @@ const copybaraAction_1 = __nccwpck_require__(4675);
 const exit_1 = __nccwpck_require__(5633);
 const action = new copybaraAction_1.CopybaraAction({
     // Credentials
-    sshKey: core.getInput("ssh_key"),
     accessToken: core.getInput("access_token"),
     // Common config
     sot: {
@@ -43611,17 +43593,12 @@ const action = new copybaraAction_1.CopybaraAction({
     committer: core.getInput("committer"),
     // Push config
     push: {
-        include: core.getInput("push_include").split(" "),
-        exclude: core.getInput("push_exclude").split(" "),
-        move: core.getInput("push_move").split(/\r?\n/),
-        replace: core.getInput("push_replace").split(/\r?\n/),
-    },
-    // PR config
-    pr: {
-        include: core.getInput("pr_include").split(" "),
-        exclude: core.getInput("pr_exclude").split(" "),
-        move: core.getInput("pr_move").split(/\r?\n/),
-        replace: core.getInput("pr_replace").split(/\r?\n/),
+        origin_include: core.getInput("origin_include").split(" "),
+        origin_exclude: core.getInput("origin_exclude").split(" "),
+        destination_include: core.getInput("destination_include").split(" "),
+        destination_exclude: core.getInput("destination_exclude").split(" "),
+        move: core.getInput("move").split(/\r?\n/),
+        replace: core.getInput("replace").split(/\r?\n/),
     },
     // Advanced config
     customConfig: core.getInput("custom_config"),
