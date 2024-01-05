@@ -95,7 +95,7 @@ export class CopybaraAction {
       } else
         exit(
           51,
-          'The current repo is neither the SoT nor destination repo. You need to set a value for "workflow" or run this action in the SoT or destination repo.'
+          'The current repo is neither the SoT nor destination repo. You need to set a value for "workflow" or run this action in the SoT or destination repo.',
         );
     }
 
@@ -120,7 +120,7 @@ export class CopybaraAction {
     return !(await this.getGitHubClient().branchExists(
       this.config.destination.repo,
       await this.getDestinationBranch(),
-      this.config.createRepo
+      this.config.createRepo,
     ));
   }
 
@@ -140,8 +140,7 @@ export class CopybaraAction {
   async saveConfigFiles() {
     core.debug("Save config files");
     await hostConfig.saveSshKey(this.config.sshKey);
-    await hostConfig.saveAccessToken(this.config.accessToken);
-    await hostConfig.saveCommitter(this.config.committer);
+    await hostConfig.saveGitConfig({ committer: this.config.committer, accessToken: this.config.accessToken });
     await hostConfig.saveKnownHosts(this.config.knownHosts);
     await hostConfig.saveCopybaraConfig(await this.getCopybaraConfig());
 

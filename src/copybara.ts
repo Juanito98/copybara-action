@@ -15,13 +15,13 @@ export class CopyBara {
       case "init":
         return this.exec(
           ["-e", "COPYBARA_WORKFLOW=push"],
-          ["--force", "--init-history", "--ignore-noop", ...copybaraOptions]
+          ["--force", "--init-history", "--ignore-noop", ...copybaraOptions],
         );
 
       case "pr":
         return this.exec(
           ["-e", "COPYBARA_WORKFLOW=pr", "-e", `COPYBARA_SOURCEREF=${ref}`],
-          ["--ignore-noop", ...copybaraOptions]
+          ["--ignore-noop", ...copybaraOptions],
         );
 
       default:
@@ -57,15 +57,9 @@ export class CopyBara {
         `-v`,
         `${process.cwd()}:/usr/src/app`,
         `-v`,
-        `${hostConfig.sshKeyPath}:/root/.ssh/id_rsa`,
-        `-v`,
-        `${hostConfig.knownHostsPath}:/root/.ssh/known_hosts`,
-        `-v`,
         `${hostConfig.cbConfigPath}:/root/copy.bara.sky`,
         `-v`,
         `${hostConfig.gitConfigPath}:/root/.gitconfig`,
-        `-v`,
-        `${hostConfig.gitCredentialsPath}:/root/.git-credentials`,
         `-e`,
         `COPYBARA_CONFIG=/root/copy.bara.sky`,
         ...dockerParams,
@@ -76,7 +70,7 @@ export class CopyBara {
       {
         ignoreReturnCode: true,
         env: { COPYBARA_OPTIONS: copybaraOptions.join(" ") },
-      }
+      },
     );
 
     const exitCode = exitCodes[execExitCode];
