@@ -39,7 +39,7 @@ TRANSFORMATIONS = [${transformations}
 ]
 
 # Specific to push flow
-ASSIGNEES = ["${assignees}"]
+ASSIGNEES = [${assignees}]
 
 # Push SoT to PR to Destination workflow
 core.workflow(
